@@ -25,40 +25,53 @@
 ;; the cursor restores to its initial location.
 
 ;;; Code:
+(defgroup smart-mark nil
+  "Restore cursor to its initial location after executing a mark function."
+  :group 'convenience)
+
+(defcustom smart-mark-mark-functions
+  '(mark-page mark-paragraph mark-whole-buffer mark-sexp mark-defun mark-word)
+  "Functions with marking behavior."
+  :group 'smart-mark
+  :type 'list
+  :set (lambda (sym val)
+		 (if smart-mark-mode
+			 (mapc (lambda (f)
+					 (advice-remove f #'smart-mark-set-restore-before-mark))
+				   val)
+		   (set-default-toplevel-value sym val))))
 
 (defvar smart-mark-point-before-mark nil
   "Cursor position before mark.")
 
-(defconst smart-mark-mark-functions
-  '(mark-page mark-paragraph mark-whole-buffer mark-sexp mark-defun mark-word)
-  "Functions with marking behavior.")
-
 (defun smart-mark-set-restore-before-mark (&rest args)
-  (setq smart-mark-point-before-mark (point)))
+  (unless (memq last-command smart-mark-mark-functions)
+	(setq smart-mark-point-before-mark (point))))
 
-(defun smart-mark-restore-cursor ()
+(defun smart-mark-restore-cursor (&rest _args)
   "Restore cursor position saved just before mark."
-  (when smart-mark-point-before-mark
-    (goto-char smart-mark-point-before-mark)
-    (setq smart-mark-point-before-mark nil)))
-
-(defun smart-mark-restore-cursor-when-cg ()
-  (when (memq last-command smart-mark-mark-functions)
-    (smart-mark-restore-cursor)))
+  (when (and smart-mark-point-before-mark
+			 (memq last-command smart-mark-mark-functions))
+	(goto-char smart-mark-point-before-mark)
+	(setq smart-mark-point-before-mark nil)))
 
 (defun smart-mark-advice-all ()
   "Advice all `smart-mark-mark-functions' so that point is initially saved."
   (mapc (lambda (f)
           (advice-add f :before #'smart-mark-set-restore-before-mark))
-   smart-mark-mark-functions)
-  (advice-add #'keyboard-quit :before #'smart-mark-restore-cursor-when-cg))
+		smart-mark-mark-functions)
+  (advice-add #'deactivate-mark :before #'smart-mark-restore-cursor)
+  (advice-add #'handle-switch-frame :before #'smart-mark-restore-cursor)
+  (advice-add #'kill-ring-save :after #'smart-mark-restore-cursor))
 
 (defun smart-mark-remove-advices ()
   "Remove all advices for `smart-mark-mark-functions'."
   (mapc (lambda (f)
           (advice-remove f #'smart-mark-set-restore-before-mark))
         smart-mark-mark-functions)
-  (advice-remove 'keyboard-quit #'smart-mark-restore-cursor-when-cg))
+  (advice-remove 'deactivate-mark #'smart-mark-restore-cursor)
+  (advice-remove 'handle-switch-frame #'smart-mark-restore-cursor)
+  (advice-remove 'kill-ring-save #'smart-mark-restore-cursor))
 
 ;;;###autoload
 (define-minor-mode smart-mark-mode
