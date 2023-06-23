@@ -33,11 +33,22 @@
   '(mark-page mark-paragraph mark-whole-buffer mark-sexp mark-defun mark-word)
   "Functions with marking behavior."
   :group 'smart-mark
-  :type 'list
+  :type '(repeat function)
   :set (lambda (sym val)
 		 (if smart-mark-mode
 			 (mapc (lambda (f)
 					 (advice-remove f #'smart-mark-set-restore-before-mark))
+				   val)
+		   (set-default-toplevel-value sym val))))
+
+(defcustom smart-mark-advice-functions '((deactivate-mark . :before))
+  "Functions need to be advicde."
+  :group 'smart-mark
+  :type '(repeat (cons function symbol))
+  :set (lambda (sym val)
+		 (if smart-mark-mode
+			 (mapc (lambda (f)
+					 (advice-remove (car f) #'smart-mark-restore-cursor))
 				   val)
 		   (set-default-toplevel-value sym val))))
 
@@ -60,18 +71,18 @@
   (mapc (lambda (f)
           (advice-add f :before #'smart-mark-set-restore-before-mark))
 		smart-mark-mark-functions)
-  (advice-add #'deactivate-mark :before #'smart-mark-restore-cursor)
-  (advice-add #'handle-switch-frame :before #'smart-mark-restore-cursor)
-  (advice-add #'kill-ring-save :after #'smart-mark-restore-cursor))
+  (mapc (lambda (f)
+		  (advice-add (car f) (cdr f) #'smart-mark-restore-cursor))
+		smart-mark-advice-functions))
 
 (defun smart-mark-remove-advices ()
   "Remove all advices for `smart-mark-mark-functions'."
   (mapc (lambda (f)
           (advice-remove f #'smart-mark-set-restore-before-mark))
         smart-mark-mark-functions)
-  (advice-remove 'deactivate-mark #'smart-mark-restore-cursor)
-  (advice-remove 'handle-switch-frame #'smart-mark-restore-cursor)
-  (advice-remove 'kill-ring-save #'smart-mark-restore-cursor))
+  (mapc (lambda (f)
+		  (advice-remove (car f) #'smart-mark-restore-cursor))
+		smart-mark-advice-functions))
 
 ;;;###autoload
 (define-minor-mode smart-mark-mode
