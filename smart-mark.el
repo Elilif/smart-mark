@@ -38,12 +38,10 @@ To make the configuration effective, use the Customize user interface
   :group 'smart-mark
   :type '(repeat function)
   :set (lambda (sym val)
-		 (if (and (fboundp 'smart-mark-mode)
-				  smart-mark-mode)
-			 (mapc (lambda (f)
-					 (advice-remove f #'smart-mark-set-restore-before-mark))
-				   val)
-		   (set-default-toplevel-value sym val))))
+		 (set-default sym val)
+		 (mapc (lambda (f)
+				 (advice-add f :before #'smart-mark-set-restore-before-mark))
+			   val)))
 
 (defcustom smart-mark-advice-functions '((deactivate-mark . :before))
   "Functions need to be advicde.
@@ -53,12 +51,10 @@ To make the configuration effective, use the Customize user interface
   :group 'smart-mark
   :type '(repeat (cons function symbol))
   :set (lambda (sym val)
-		 (if (and (fboundp 'smart-mark-mode)
-				  smart-mark-mode)
-			 (mapc (lambda (f)
-					 (advice-remove (car f) #'smart-mark-restore-cursor))
-				   val)
-		   (set-default-toplevel-value sym val))))
+		 (set-default sym val)
+		 (mapc (lambda (f)
+				 (advice-add (car f) (cdr f) #'smart-mark-restore-cursor))
+			   val)))
 
 (defvar-local smart-mark-point-before-mark nil
   "Cursor position before mark.")
