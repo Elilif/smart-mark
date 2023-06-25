@@ -31,28 +31,36 @@
 
 (defcustom smart-mark-mark-functions
   '(mark-page mark-paragraph mark-whole-buffer mark-sexp mark-defun mark-word)
-  "Functions with marking behavior."
+  "Functions with marking behavior.
+
+To make the configuration effective, use the Customize user interface
+ or `setopt' to modify this variable."
   :group 'smart-mark
   :type '(repeat function)
   :set (lambda (sym val)
-		 (if smart-mark-mode
+		 (if (and (fboundp 'smart-mark-mode)
+				  smart-mark-mode)
 			 (mapc (lambda (f)
 					 (advice-remove f #'smart-mark-set-restore-before-mark))
 				   val)
 		   (set-default-toplevel-value sym val))))
 
 (defcustom smart-mark-advice-functions '((deactivate-mark . :before))
-  "Functions need to be advicde."
+  "Functions need to be advicde.
+
+To make the configuration effective, use the Customize user interface
+ or `setopt' to modify this variable."
   :group 'smart-mark
   :type '(repeat (cons function symbol))
   :set (lambda (sym val)
-		 (if smart-mark-mode
+		 (if (and (fboundp 'smart-mark-mode)
+				  smart-mark-mode)
 			 (mapc (lambda (f)
 					 (advice-remove (car f) #'smart-mark-restore-cursor))
 				   val)
 		   (set-default-toplevel-value sym val))))
 
-(defvar smart-mark-point-before-mark nil
+(defvar-local smart-mark-point-before-mark nil
   "Cursor position before mark.")
 
 (defun smart-mark-set-restore-before-mark (&rest args)
@@ -61,8 +69,7 @@
 
 (defun smart-mark-restore-cursor (&rest _args)
   "Restore cursor position saved just before mark."
-  (when (and smart-mark-point-before-mark
-			 (memq last-command smart-mark-mark-functions))
+  (when smart-mark-point-before-mark
 	(goto-char smart-mark-point-before-mark)
 	(setq smart-mark-point-before-mark nil)))
 
