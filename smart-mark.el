@@ -43,7 +43,7 @@ To make the configuration effective, use the Customize user interface
 				 (advice-add f :before #'smart-mark-set-restore-before-mark))
 			   val)))
 
-(defcustom smart-mark-advice-functions '((deactivate-mark . :before))
+(defcustom smart-mark-advice-functions '((keyboard-quit . :before))
   "Functions need to be advicde.
 
 To make the configuration effective, use the Customize user interface
