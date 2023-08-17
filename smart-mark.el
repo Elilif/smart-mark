@@ -65,7 +65,8 @@ To make the configuration effective, use the Customize user interface
 
 (defun smart-mark-restore-cursor (&rest _args)
   "Restore cursor position saved just before mark."
-  (when smart-mark-point-before-mark
+  (when (and smart-mark-point-before-mark
+			 (memq last-command smart-mark-mark-functions))
 	(goto-char smart-mark-point-before-mark)
 	(setq smart-mark-point-before-mark nil)))
 
